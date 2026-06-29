@@ -8,7 +8,6 @@ import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 
-// Import czcionek
 import { 
   useFonts, 
   Inconsolata_400Regular, 
@@ -94,8 +93,17 @@ export default function App() {
     setCurrentLocationData(null);
   };
 
+  const deleteEntry = async (id) => {
+    const updatedHistory = history.filter(item => item.id !== id);
+    setHistory(updatedHistory);
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedHistory));
+    } catch (e) {
+      console.error("Błąd podczas usuwania wpisu:", e);
+    }
+  };
+
   const navigate = (lat, lon) => {
-    // POPRAWIONE: Prawidłowe użycie backticków dla template literals
     const url = Platform.select({
       ios: `maps:0,0?q=${lat},${lon}`,
       android: `geo:0,0?q=${lat},${lon}`
@@ -129,7 +137,6 @@ export default function App() {
           {loading ? (
             <ActivityIndicator color="#000" size="large" />
           ) : (
-            // POPRAWIONE: Dodano obrót powrotny, żeby pineska nie była skręcona o 45 stopni
             <View style={{ transform: [{ rotate: '-45deg' }] }}>
               <Ionicons name="pin" size={60} color="#000" />
             </View>
@@ -149,9 +156,15 @@ export default function App() {
                 <Text style={styles.placeName}>{item.name.toUpperCase()}</Text>
                 <Text style={styles.historyMeta}>{item.date} | {item.time}</Text>
               </View>
-              <TouchableOpacity onPress={() => navigate(item.lat, item.lon)}>
-                <Ionicons name="navigate" size={30} color={LIME} />
-              </TouchableOpacity>
+              
+              <View style={styles.actionsContainer}>
+                <TouchableOpacity onPress={() => navigate(item.lat, item.lon)} style={styles.actionBtn}>
+                  <Ionicons name="navigate" size={26} color={LIME} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => deleteEntry(item.id)} style={styles.actionBtn}>
+                  <Ionicons name="trash-outline" size={24} color="#FF3B30" />
+                </TouchableOpacity>
+              </View>
             </View>
           )}
           ListEmptyComponent={<Text style={styles.empty}>NO_DATA_AVAILABLE</Text>}
@@ -256,6 +269,14 @@ const styles = StyleSheet.create({
     color: '#555',
     fontSize: 12,
     fontFamily: 'Inconsolata_400Regular',
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+  },
+  actionBtn: {
+    padding: 4,
   },
   empty: {
     color: '#222',
